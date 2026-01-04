@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-// 파일에 따라 함수 이름을 바꾸세요: AlbumScreen, SurfingScreen, UserScreen
+// 파일에 따라 함수 이름을 바꾸세요: AlbumScreen, SurfingScreen, UserScreen test
 export default function AlbumScreen() {
   return (
     <View style={styles.container}>
