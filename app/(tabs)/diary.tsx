@@ -58,6 +58,7 @@ const mockDiaries: DiaryEntry[] = [
     albumArt: 'https://upload.wikimedia.org/wikipedia/en/f/f5/Dua_Lipa_-_Future_Nostalgia_%28Official_Album_Cover%29.png', // 예시 이미지
     memo: '"Morning energy boost on my way to the gym"' 
   },
+  
 ];
 
 // 날씨 아이콘 매핑 함수
