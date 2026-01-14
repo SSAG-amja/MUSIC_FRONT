@@ -60,6 +60,51 @@ const mockAlbums: Album[] = [
       'Blinding Lights · The Weeknd',
     ],
   },
+  {
+  id: '3',
+  title: 'Late Night Walk',
+  createdAt: '2 Days Ago · 11:45 PM',
+  location: 'Seoul, Jamsil',
+  weather: 'Cloudy',
+  mood: 'Reflective',
+  activity: 'Walk',
+  songsPreview: [
+    'Nights · Frank Ocean',
+    'Moon · Kid Francescoli',
+    'After Dark · Mr.Kitty',
+    'Slow Dancing in the Dark · Joji',
+  ],
+},
+{
+  id: '4',
+  title: 'Morning Cafe Routine',
+  createdAt: 'Last Week · 9:10 AM',
+  location: 'Seoul, Seongsu',
+  weather: 'Rainy',
+  mood: 'Relaxed',
+  activity: 'Study',
+  songsPreview: [
+    'Coffee · Sylvan Esso',
+    'Banana Pancakes · Jack Johnson',
+    'Cherry Wine · Hozier',
+  ],
+},
+{
+  id: '5',
+  title: 'Sunset Drive',
+  createdAt: 'Last Week · 6:40 PM',
+  location: 'Seoul, Yeouido',
+  weather: 'Sunny',
+  mood: 'Uplifting',
+  activity: 'Commute',
+  songsPreview: [
+    'Golden · Harry Styles',
+    'Good Days · SZA',
+    'Levitating · Dua Lipa',
+    'Blinding Lights · The Weeknd',
+  ],
+},
+
 ];
 
 /* ───── 날씨 아이콘 매핑 ───── */
