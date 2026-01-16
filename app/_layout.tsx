@@ -1,4 +1,4 @@
-// app/_layout.tsx (위치 확인 필수!)
+// app/_layout.tsx
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
@@ -7,14 +7,18 @@ export default function RootLayout() {
     <>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
+        
+        {/* 260116임재준 초기화면 index로 수정 */}
+        <Stack.Screen name="index" /> 
+
+        
+        
         {/* 1. 탭 화면들 */}
         <Stack.Screen name="(tabs)" />
-        
         {/* 2. 로그인 화면들 */}
         <Stack.Screen name="(auth)" />
-        <Stack.Screen name="index" />
 
-        {/* 3. [필수] 프로필 수정 화면 등록 */}
+        {/* 3. [필수] 프로필 수정 화면 등록 */} 
         <Stack.Screen 
           name="profile-edit" 
           options={{ 
