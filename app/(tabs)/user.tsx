@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import { Link, useRouter } from 'expo-router'; // [수정] Link 추가
 import React, { useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
@@ -83,7 +84,7 @@ export default function UserProfileScreen() {
         <View style={styles.card}>
           <View style={styles.row}>
             <View style={styles.rowLeft}>
-              <Ionicons name="logo-spotify" size={28} color={isSpotifyConnected ? COLORS.spotify : COLORS.textSecondary} />
+              <AntDesign name="spotify" size={24} color="white" />
               <View style={{ marginLeft: 15 }}>
                 <Text style={styles.itemTitle}>Spotify</Text>
                 <Text style={styles.itemSubtitle}>
