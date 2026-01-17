@@ -8,20 +8,64 @@ export default function LoginScreen() {
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
+  // 260117 임재준 온보딩 분기 설정
+  // [수정] 입력값 비교를 좀 더 안전하게 처리하도록 변경
+  const mockLoginApi = async (userId: string) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // .trim()을 사용하여 앞뒤 공백 제거 후 비교 (모바일에서 공백 실수 방지)
+        // .toLowerCase()를 사용하여 대소문자 무시 (선택사항)
+        if (userId.trim().toLowerCase() === 'new') {
+          // 'new' -> 아직 온보딩 안 함 (false)
+          resolve({ success: true, token: 'abc', hasOnboarded: false });
+        } else {
+          // 그 외 -> 이미 온보딩 완료함 (true)
+          resolve({ success: true, token: 'abc', hasOnboarded: true });
+        }
+      }, 1000); // 1초 딜레이
+    });
+  };
+
+  const handleLogin = async () => {
     if (id === '' || password === '') {
       Alert.alert('알림', '아이디와 비밀번호를 입력해주세요.');
       return;
     }
-    // TODO: 실제 로그인 API 호출
-    console.log('로그인 시도:', id, password);
-    router.replace('/(tabs)'); 
+
+    try {
+      console.log(`로그인 시도 ID: '${id}'`); // 공백이 포함되어 있는지 확인용
+
+      // 1. [API 호출]
+      const response: any = await mockLoginApi(id); 
+      
+      console.log('서버 응답:', response); // [디버깅] 서버가 실제로 뭘 줬는지 확인
+
+      if (response.success) {
+        // 2. [토큰 저장] (생략)
+        
+        // 3. [분기 처리]
+        // hasOnboarded가 true면 메인, false면 온보딩
+        if (response.hasOnboarded === true) {
+          console.log('✅ 기존 유저(true) -> 메인 탭으로 이동');
+          router.replace('/(tabs)'); 
+        } else {
+          console.log('🆕 신규 유저(false) -> 온보딩 화면으로 이동');
+          router.replace('/onboarding'); 
+        }
+      } else {
+        Alert.alert('오류', '로그인 정보가 일치하지 않습니다.');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('오류', '서버 통신 중 문제가 발생했습니다.');
+    }
+    // [주의] 이 아래에 router.replace 코드가 절대 있으면 안 됩니다!
   };
 
   return (
     <>
-      <StatusBar style="light" /> {/* 상태바 아이콘을 흰색으로 */}
-      
+      <StatusBar style="light" /> 
+      {/* ... (UI 코드는 기존과 동일하여 생략, 그대로 두시면 됩니다) ... */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -78,9 +122,10 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ... (기존 스타일 유지) ...
   container: {
     flex: 1,
-    backgroundColor: '#0A0A1E', // 메인 어두운 배경색
+    backgroundColor: '#0A0A1E',
   },
   innerContainer: {
     flex: 1,
@@ -94,12 +139,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#FFFFFF', // 흰색 타이틀
+    color: '#FFFFFF',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: '#888899', // 보조 텍스트 색상
+    color: '#888899',
     textAlign: 'center',
   },
   inputContainer: {
@@ -117,22 +162,21 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 55,
-    backgroundColor: '#1F1F35', // 어두운 컨테이너 배경색
+    backgroundColor: '#1F1F35',
     borderRadius: 12,
     paddingHorizontal: 20,
     fontSize: 16,
-    color: '#FFFFFF', // 입력 텍스트 흰색
+    color: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#2F2F4F', // 은은한 테두리
+    borderColor: '#2F2F4F',
   },
   loginButton: {
     height: 55,
-    backgroundColor: '#8A2BE2', // 액센트 보라색
+    backgroundColor: '#8A2BE2',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 25,
-    // 네온 느낌의 그림자
     shadowColor: "#8A2BE2",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -153,7 +197,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   signupLink: {
-    color: '#8A2BE2', // 링크도 액센트 색상으로
+    color: '#8A2BE2',
     fontSize: 15,
     fontWeight: 'bold',
   },

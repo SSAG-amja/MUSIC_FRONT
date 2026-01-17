@@ -17,6 +17,12 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         {/* 2. 로그인 화면들 */}
         <Stack.Screen name="(auth)" />
+        {/* 260117임재준 온보딩 화면(헤더 숨기고,뒤로가기 방지*/}
+        <Stack.Screen
+          name="onboarding"
+          options={{gestureEnabled:false}}
+        />
+        
 
         {/* 3. [필수] 프로필 수정 화면 등록 */} 
         <Stack.Screen 

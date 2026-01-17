@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden', 
   },
   picker: {
-    // ✅ [핵심 수정] 부모 컨테이너(flex:4)에 맞춰 꽉 차도록 설정
+    // ✅ [핵심 수정] 부모 컨테이너에 맞춰 꽉 차도록 설정
     width: '100%', 
     height: '100%', // 높이도 꽉 차게 명시 (안전장치)
     
