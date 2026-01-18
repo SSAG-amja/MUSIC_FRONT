@@ -110,13 +110,18 @@ export default function UserProfileScreen() {
         <View style={styles.card}>
           
           {/* 회원정보 수정 */}
-          <TouchableOpacity style={styles.menuItem} onPress={() => console.log('회원정보 수정')}>
-            <View style={styles.rowLeft}>
-              <Ionicons name="person-outline" size={22} color={COLORS.textPrimary} />
-              <Text style={styles.menuText}>회원정보 수정</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
-          </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.menuItem} 
+          onPress={() => router.push('/useredit')} 
+        >
+          {/* 👆 '/useredit'은 app 폴더 안의 useredit.tsx 파일명과 같아야 합니다 */}
+          
+          <View style={styles.rowLeft}>
+            <Ionicons name="person-outline" size={22} color={COLORS.textPrimary} />
+            <Text style={styles.menuText}>회원정보 수정</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
 
           <View style={styles.divider} />
 

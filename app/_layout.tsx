@@ -35,6 +35,18 @@ export default function RootLayout() {
             headerTintColor: '#fff',
           }} 
         />
+        
+        <Stack.Screen 
+        name="useredit" 
+        options={{ 
+          headerShown: false, // useredit.tsx 내부에서 헤더를 그리지 않는다면 false, 그린다면 true 
+          // (작성해주신 useredit.tsx 코드는 내부에 자체 헤더 설정을 가지고 있으므로 
+          //  보통 여기서 headerShown: true로 하고 내부에서 커스텀하거나, 
+          //  여기서 false로 하고 파일 안에서 UI를 그릴 수 있습니다.)
+          //  작성해주신 코드는 <Stack.Screen options=... />를 내부에 가지고 있으므로
+          //  여기서는 특별한 옵션 없이 등록만 해도 됩니다.
+        }} 
+      />
       </Stack>
     </>
   );
