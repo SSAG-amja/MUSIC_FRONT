@@ -41,3 +41,8 @@ app-example
 # generated native folders
 /ios
 /android
+
+# 220122 임재준
+# IP 주소 충돌 방지
+.env
+.env.local
