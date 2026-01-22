@@ -1,30 +1,20 @@
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
+// 1. BASE_URL 가져오기 (디버깅용 로그 추가)
+import { BASE_URL } from '@/constants/Urls';
+console.log("🧐 현재 적용된 BASE_URL:", BASE_URL);
+//220122 암재준
+//백엔드 연결
 export default function LoginScreen() {
   const router = useRouter();
-  const [id, setId] = useState('');
+  const [id, setId] = useState(''); // 이메일
   const [password, setPassword] = useState('');
-
-  // 260117 임재준 온보딩 분기 설정
-  // [수정] 입력값 비교를 좀 더 안전하게 처리하도록 변경
-  const mockLoginApi = async (userId: string) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // .trim()을 사용하여 앞뒤 공백 제거 후 비교 (모바일에서 공백 실수 방지)
-        // .toLowerCase()를 사용하여 대소문자 무시 (선택사항)
-        if (userId.trim().toLowerCase() === 'new') {
-          // 'new' -> 아직 온보딩 안 함 (false)
-          resolve({ success: true, token: 'abc', hasOnboarded: false });
-        } else {
-          // 그 외 -> 이미 온보딩 완료함 (true)
-          resolve({ success: true, token: 'abc', hasOnboarded: true });
-        }
-      }, 1000); // 1초 딜레이
-    });
-  };
+  
+  // 2. 로딩 상태 추가
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (id === '' || password === '') {
@@ -32,40 +22,60 @@ export default function LoginScreen() {
       return;
     }
 
+    setLoading(true); // 로딩 시작
+    
+    // 👇 [디버깅] 1단계 로그
+    console.log("🚀 [1단계] 로그인 요청 시작! ID:", id);
+
     try {
-      console.log(`로그인 시도 ID: '${id}'`); // 공백이 포함되어 있는지 확인용
-
-      // 1. [API 호출]
-      const response: any = await mockLoginApi(id); 
+      // ⚠️ Signup과 동일하게 IP를 직접 입력해서 확실하게 연결합니다.
+      // 나중에 BASE_URL 설정이 확실해지면 교체하세요.
+      const TARGET_URL = `${BASE_URL}/api/v1/login`;
       
-      console.log('서버 응답:', response); // [디버깅] 서버가 실제로 뭘 줬는지 확인
+      console.log(`📡 [2단계] 페치 시도: ${TARGET_URL}`);
 
-      if (response.success) {
-        // 2. [토큰 저장] (생략)
+      // 3. FastAPI 로그인 표준: Form Data 생성
+      const formData = new URLSearchParams();
+      formData.append('username', id); 
+      formData.append('password', password);
+
+      const response = await fetch(TARGET_URL, {
+        method: 'POST',
+        headers: {
+          // 중요: 로그인은 JSON 아님! (x-www-form-urlencoded)
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
+      });
+
+      // 👇 [디버깅] 3단계 로그
+      console.log("✅ [3단계] 응답 도착! 상태코드:", response.status);
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('🎉 로그인 성공! 받은 토큰:', data.access_token);
         
-        // 3. [분기 처리]
-        // hasOnboarded가 true면 메인, false면 온보딩
-        if (response.hasOnboarded === true) {
-          console.log('✅ 기존 유저(true) -> 메인 탭으로 이동');
-          router.replace('/(tabs)'); 
-        } else {
-          console.log('🆕 신규 유저(false) -> 온보딩 화면으로 이동');
-          router.replace('/onboarding'); 
-        }
+        // TODO: 여기서 받은 토큰(data.access_token)을 저장해야 합니다. (AsyncStorage 등)
+        
+        // 메인 화면으로 이동
+        router.replace('/(tabs)'); 
       } else {
-        Alert.alert('오류', '로그인 정보가 일치하지 않습니다.');
+        console.log("🔥 로그인 실패 응답:", data);
+        Alert.alert('로그인 실패', '아이디 또는 비밀번호를 확인해주세요.');
       }
     } catch (error) {
-      console.error(error);
-      Alert.alert('오류', '서버 통신 중 문제가 발생했습니다.');
+      console.error("❌ [에러 발생]:", error);
+      Alert.alert('연결 오류', '서버와 통신할 수 없습니다.');
+    } finally {
+      setLoading(false); // 로딩 끝
+      console.log("🏁 [4단계] 로딩 종료");
     }
-    // [주의] 이 아래에 router.replace 코드가 절대 있으면 안 됩니다!
   };
 
   return (
     <>
-      <StatusBar style="light" /> 
-      {/* ... (UI 코드는 기존과 동일하여 생략, 그대로 두시면 됩니다) ... */}
+      <StatusBar style="light" />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -79,10 +89,10 @@ export default function LoginScreen() {
 
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
-              <Text style={styles.label}>아이디</Text>
+              <Text style={styles.label}>아이디 (이메일)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="이메일 주소 입력"
+                placeholder="example@email.com"
                 placeholderTextColor="#888899"
                 value={id}
                 onChangeText={setId}
@@ -103,13 +113,22 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>로그인</Text>
+          <TouchableOpacity 
+            style={[styles.loginButton, loading && { opacity: 0.7 }]} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+             {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.loginButtonText}>로그인</Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.footerContainer}>
             <Text style={styles.footerText}>아직 계정이 없으신가요? </Text>
-            <Link href="/signup" asChild>
+            {/* 파일 구조에 맞춰 경로 설정 */}
+            <Link href="/(auth)/signup" asChild> 
               <TouchableOpacity>
                 <Text style={styles.signupLink}>회원가입</Text>
               </TouchableOpacity>
@@ -122,7 +141,6 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ... (기존 스타일 유지) ...
   container: {
     flex: 1,
     backgroundColor: '#0A0A1E',
