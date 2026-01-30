@@ -1,18 +1,23 @@
 import { Picker } from "@react-native-picker/picker";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react"; // ✅ useEffect 추가
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ActivityIndicator, // ✅ 로딩 표시용
 } from "react-native";
+
+// ✅ 토큰 및 서버 주소 가져오기
+import * as SecureStore from 'expo-secure-store';
+import { BASE_URL } from '@/constants/Urls';
 
 // 1. TypeScript 인터페이스 정의
 interface RadioButtonProps {
@@ -25,17 +30,20 @@ interface RadioButtonProps {
 export default function UserEditScreen() {
   const router = useRouter();
 
-  // 기존 회원 정보가 있다고 가정 (초기값 설정)
-  const [email, setEmail] = useState("user@example.com");
-  const [nickname, setNickname] = useState("기존닉네임");
-
+  // ✅ 초기값은 비워두고, 로딩이 끝나면 서버 데이터로 채웁니다.
+  const [email, setEmail] = useState("");
+  const [nickname, setNickname] = useState("");
+  
   // 정보 수정을 위한 현재 비밀번호 확인용 state
   const [currentPassword, setCurrentPassword] = useState("");
 
-  const [year, setYear] = useState("1995"); // 기존 생년
-  const [month, setMonth] = useState("5"); // 기존 생월
-  const [day, setDay] = useState("15"); // 기존 생일
-  const [gender, setGender] = useState("male"); // 기존 성별
+  const [year, setYear] = useState(""); 
+  const [month, setMonth] = useState(""); 
+  const [day, setDay] = useState(""); 
+  const [gender, setGender] = useState(""); 
+
+  // ✅ 데이터 로딩 상태 관리
+  const [loading, setLoading] = useState(true);
 
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -53,6 +61,55 @@ export default function UserEditScreen() {
     [],
   );
 
+  // ✅ [추가] 화면 진입 시 내 정보 불러오기
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const token = await SecureStore.getItemAsync('userToken');
+        if (!token) {
+          Alert.alert("오류", "로그인 정보가 없습니다.");
+          router.back();
+          return;
+        }
+
+        const response = await fetch(`${BASE_URL}/api/v1/users/me`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("📝 회원수정 화면 - 불러온 정보:", data);
+
+          // 1. 기본 정보 채우기
+          setEmail(data.email || "");
+          setNickname(data.username || data.full_name || ""); // 백엔드 필드명에 맞게 매핑
+          setGender(data.gender || "male");
+
+          // 2. 생년월일 파싱 ("1995-05-15" -> year, month, day 분리)
+          if (data.birth) {
+            const [y, m, d] = data.birth.split('-');
+            setYear(y);
+            // Picker 값("5")과 맞추기 위해 "05" -> 5 -> "5"로 변환
+            setMonth(parseInt(m).toString()); 
+            setDay(parseInt(d).toString());
+          }
+        } else {
+          Alert.alert("오류", "정보를 불러오지 못했습니다.");
+        }
+      } catch (error) {
+        console.error("정보 로드 실패:", error);
+        Alert.alert("연결 오류", "서버와 통신할 수 없습니다.");
+      } finally {
+        setLoading(false); // 로딩 종료
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
+
   const handleUpdate = () => {
     // 1. 필수 입력값 체크
     if (!nickname || !year || !month || !day || !gender) {
@@ -69,9 +126,8 @@ export default function UserEditScreen() {
       return;
     }
 
-    // TODO: 여기서 실제 서버로 현재 비밀번호가 맞는지 검증하는 로직이 필요합니다.
-    // 예시: if (checkPassword(currentPassword) === false) return;
-
+    // TODO: 여기서 실제 서버로 업데이트 요청(PUT)을 보내야 합니다.
+    
     const birthDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 
     console.log("회원정보 수정 요청:", {
@@ -110,12 +166,23 @@ export default function UserEditScreen() {
     </TouchableOpacity>
   );
 
+  // ✅ 로딩 중일 때 표시할 화면
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Stack.Screen options={{ title: '회원정보 수정', headerStyle: { backgroundColor: '#0A0A1E' }, headerTintColor: '#fff' }}/>
+        <ActivityIndicator size="large" color="#8A2BE2" />
+        <StatusBar style="light" />
+      </View>
+    );
+  }
+
   return (
     <>
       <StatusBar style="light" />
       <Stack.Screen
         options={{
-          title: "회원정보 수정", // 헤더 타이틀 변경
+          title: "회원정보 수정",
           headerBackTitle: " ",
           headerTintColor: "#FFFFFF",
           headerStyle: { backgroundColor: "#0A0A1E" },
@@ -136,13 +203,13 @@ export default function UserEditScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            {/* 이메일 (보통 이메일은 변경 불가능한 경우가 많아 스타일을 다르게 처리하거나 readOnly로 설정) */}
+            {/* 이메일 (변경 불가) */}
             <View style={styles.inputWrapper}>
               <Text style={styles.label}>이메일</Text>
               <TextInput
-                style={[styles.input, styles.disabledInput]} // 비활성화 스타일 적용
+                style={[styles.input, styles.disabledInput]} 
                 value={email}
-                editable={false} // 이메일 변경 불가 처리 (필요시 true로 변경)
+                editable={false} 
               />
               <Text style={styles.helperText}>
                 이메일은 변경할 수 없습니다.
@@ -255,7 +322,7 @@ export default function UserEditScreen() {
 
             <View style={styles.divider} />
 
-            {/* 중요: 수정 확인을 위한 비밀번호 입력 */}
+            {/* 비밀번호 확인 */}
             <View style={styles.inputWrapper}>
               <Text style={[styles.label, { color: "#8A2BE2" }]}>
                 현재 비밀번호 확인
@@ -336,10 +403,9 @@ const styles = StyleSheet.create({
     borderColor: "#2F2F4F",
   },
   disabledInput: {
-    backgroundColor: "#151525", // 비활성화된 느낌의 더 어두운 배경
+    backgroundColor: "#151525", 
     color: "#888899",
   },
-  // --- 구분선 ---
   divider: {
     height: 1,
     backgroundColor: "#2F2F4F",

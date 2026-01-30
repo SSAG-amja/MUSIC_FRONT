@@ -26,7 +26,7 @@ export default function RootLayout() {
 
         {/* 3. [필수] 프로필 수정 화면 등록 */} 
         <Stack.Screen 
-          name="profile-edit" 
+          name="profileedit" 
           options={{ 
             headerShown: true, 
             title: '프로필 편집',
