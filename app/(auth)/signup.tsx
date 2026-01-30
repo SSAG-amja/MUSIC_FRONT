@@ -3,11 +3,14 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+//260130 임재준
+//안전한 영역(노치 등) 높이를 계산해주는 훅 가져오기
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // 1. 서버 주소 가져오기
 import { BASE_URL } from '@/constants/Urls';
 console.log("🧐 현재 적용된 BASE_URL:", BASE_URL);
-// TypeScript 인터페이스 정의
+
 interface RadioButtonProps {
   label: string;
   value: string;
@@ -17,6 +20,9 @@ interface RadioButtonProps {
 
 export default function SignupScreen() {
   const router = useRouter();
+  
+  // ✅ [추가 2] 현재 기기의 안전 영역 크기 가져오기
+  const insets = useSafeAreaInsets();
   
   const [email, setEmail] = useState('');
   const [nickname, setNickname] = useState('');
@@ -28,7 +34,6 @@ export default function SignupScreen() {
   const [day, setDay] = useState('');
   const [gender, setGender] = useState('');
 
-  // 2. 로딩 상태 추가
   const [loading, setLoading] = useState(false);
 
   const years = useMemo(() => {
@@ -40,8 +45,7 @@ export default function SignupScreen() {
 
   const months = useMemo(() => Array.from({ length: 12 }, (_, i) => (i + 1).toString()), []);
   const days = useMemo(() => Array.from({ length: 31 }, (_, i) => (i + 1).toString()), []);
-  //220122 임재준
-  //회원가입 처리 함수 (백엔드 연결)
+
   const handleSignup = async () => {
     // 1. 유효성 검사
     if (!email || !nickname || !password || !confirmPassword || !year || !month || !day || !gender) {
@@ -60,29 +64,22 @@ export default function SignupScreen() {
       return;
     }
 
-    // 2. 데이터 가공 (백엔드 스키마 맞추기)
+    // 2. 데이터 가공
     const birthString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     
-    // 백엔드가 요구하는 JSON 키값과 일치 시키기
     const signupData = {
       email: email,
-      username: nickname, // 프론트의 nickname -> 백엔드의 username
+      username: nickname,
       gender: gender,
-      birth: birthString, // 프론트의 날짜 조합 -> 백엔드의 birth
+      birth: birthString,
       password: password
     };
 
-    console.log("보내는 데이터:", signupData); // 디버깅용 로그
-
-    // 3. 서버 요청
-    setLoading(true); // 로딩 시작
-    // 👇 [디버깅] 보내기 직전 데이터 확인
+    setLoading(true);
     console.log("🚀 [1단계] 요청 시작!");
-    console.log("📦 보낼 데이터:", JSON.stringify(signupData));
 
     try {
       const TARGET_URL = `${BASE_URL}/api/v1/users`;
-      
       console.log(`📡 [2단계] 페치 시도: ${TARGET_URL}`);
 
       const response = await fetch(TARGET_URL, {
@@ -93,7 +90,6 @@ export default function SignupScreen() {
         body: JSON.stringify(signupData),
       });
 
-      // 👇 이 로그가 안 찍히면 네트워크 문제입니다.
       console.log("✅ [3단계] 응답 도착! 상태코드:", response.status);
 
       const data = await response.json();
@@ -108,11 +104,10 @@ export default function SignupScreen() {
         Alert.alert('회원가입 실패', errorMessage);
       }
     } catch (error) {
-      // 👇 여기가 찍히면 앱 설정이나 네트워크 문제입니다.
       console.error("❌ [에러 발생]:", error);
       Alert.alert('연결 실패', `에러 내용: ${error}`);
     } finally {
-      setLoading(false); // 로딩 끝
+      setLoading(false);
       console.log("🏁 [4단계] 로딩 종료");
     }
   };
@@ -147,7 +142,13 @@ export default function SignupScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* ✅ [수정 3] contentContainerStyle에 insets.top을 더해서 상태바 만큼 패딩을 줍니다 */}
+        <ScrollView 
+          contentContainerStyle={[
+            styles.scrollContainer, 
+            { paddingTop: insets.top + 20 } // (기기 노치 높이) + (여유 공간 20)
+          ]}
+        >
           
           <View style={styles.headerContainer}>
             <Text style={styles.headerTitle}>새 계정 만들기</Text>
@@ -267,11 +268,11 @@ export default function SignupScreen() {
             </View>
           </View>
 
-          {/* 가입 완료 버튼 (로딩 처리 적용) */}
+          {/* 가입 완료 버튼 */}
           <TouchableOpacity 
             style={[styles.signupButton, loading && { opacity: 0.7 }]} 
             onPress={handleSignup}
-            disabled={loading} // 로딩 중 클릭 방지
+            disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
@@ -293,7 +294,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     padding: 30,
-    paddingTop: 10,
+    // paddingTop: 10,  <-- ✅ 이 값은 이제 ScrollView의 style prop에서 동적으로 처리합니다.
     paddingBottom: 50,
   },
   headerContainer: {
