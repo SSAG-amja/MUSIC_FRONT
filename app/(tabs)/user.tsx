@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { Link, useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react'; // ✅ useEffect 추가
+//useFocusEffect 추가
+import { Link, useRouter, useFocusEffect } from 'expo-router';
+//useCallback 추가
+import React, { useState, useCallback } from 'react'; 
 import { Alert, Image, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 // SecureStore 임포트
 import * as SecureStore from 'expo-secure-store';
 
-// ✅ [추가] 서버 주소 가져오기
+// 서버 주소 가져오기
 import { BASE_URL } from '@/constants/Urls';
 
 // 디자인 상수 (전역 테마 일치)
@@ -25,7 +27,7 @@ const COLORS = {
 export default function UserProfileScreen() {
   const router = useRouter();
 
-  // ✅ [추가] 유저 정보를 담을 상태 변수 (초기값은 로딩 중...)
+  // 유저 정보를 담을 상태 변수
   const [userInfo, setUserInfo] = useState({
     name: '로딩 중...',
     email: ''
@@ -33,43 +35,45 @@ export default function UserProfileScreen() {
 
   const [isSpotifyConnected, setIsSpotifyConnected] = useState(false);
   const [isPushEnabled, setIsPushEnabled] = useState(true);
+  //260131 임재준
+  // useEffect -> useFocusEffect로 변경
+  // 화면이 다시 포커스될 때마다(뒤로가기로 돌아왔을 때 포함) 실행됨
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserInfo = async () => {
+        try {
+          // 1. 저장된 토큰 꺼내기
+          const token = await SecureStore.getItemAsync('userToken');
+          if (!token) return;
 
-  // ✅ [추가] 화면이 열리면 내 정보 가져오기
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      try {
-        // 1. 저장된 토큰 꺼내기
-        const token = await SecureStore.getItemAsync('userToken');
-        if (!token) return;
-
-        // 2. 서버에 '내 정보' 요청하기
-        const response = await fetch(`${BASE_URL}/api/v1/users/me`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`, // 🔑 토큰 보여주기 (필수)
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log("👤 내 정보 로드 완료:", data);
-          
-          // 3. 받아온 정보로 상태 업데이트
-          // (백엔드에서 username을 닉네임으로 쓰고 있으므로 username을 표시)
-          setUserInfo({
-            name: data.username || data.full_name || '이름 없음', 
-            email: data.email || ''
+          // 2. 서버에 '내 정보' 요청하기
+          const response = await fetch(`${BASE_URL}/api/v1/users/me`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
           });
-        } else {
-          console.log("불러오기 실패:", response.status);
-        }
-      } catch (error) {
-        console.error("내 정보 가져오기 에러:", error);
-      }
-    };
 
-    fetchUserInfo();
-  }, []); // []는 화면이 처음 뜰 때 한 번만 실행한다는 뜻
+          if (response.ok) {
+            const data = await response.json();
+            console.log("👤 내 정보 갱신 완료:", data);
+            
+            // 3. 상태 업데이트 (화면 리렌더링)
+            setUserInfo({
+              name: data.username || data.full_name || '이름 없음', 
+              email: data.email || ''
+            });
+          } else {
+            console.log("불러오기 실패:", response.status);
+          }
+        } catch (error) {
+          console.error("내 정보 가져오기 에러:", error);
+        }
+      };
+
+      fetchUserInfo();
+    }, []) // useCallback의 의존성 배열은 비워둡니다.
+  );
 
   const handleSpotifyConnect = () => {
     if (isSpotifyConnected) {
@@ -96,22 +100,20 @@ export default function UserProfileScreen() {
             console.log('🕵️ [디버깅] 로그아웃 시도 중...');
 
             const checkBefore = await SecureStore.getItemAsync('userToken');
-            console.log(`🧐 삭제 전 토큰 상태: ${checkBefore ? '있음(O)' : '없음(X)'}`);
-
+            
             if (!checkBefore) {
-               console.warn("⚠️ 경고: 삭제할 토큰이 없습니다! 키 이름('userToken')이 맞나요?");
+               console.warn("⚠️ 경고: 삭제할 토큰이 없습니다!");
             }
 
             await SecureStore.deleteItemAsync('userToken');
             
             const checkAfter = await SecureStore.getItemAsync('userToken');
-            console.log(`🧹 삭제 후 토큰 상태: ${checkAfter ? '아직 있음(😱 실패)' : '없음(✨ 성공)'}`);
 
             if (!checkAfter) {
                 console.log('✅ 로그아웃 성공! 로그인 화면으로 이동합니다.');
                 router.replace('/signin'); 
             } else {
-                Alert.alert('오류', '토큰이 끈질기게 남아있습니다. 앱을 재설치해보세요.');
+                Alert.alert('오류', '토큰이 끈질기게 남아있습니다.');
             }
             
           } catch (error) {
@@ -137,11 +139,11 @@ export default function UserProfileScreen() {
           </TouchableOpacity>
         </View>
         
-        {/* ✅ [수정] 하드코딩 된 값 -> 받아온 userInfo 값으로 교체 */}
+        {/* 받아온 userInfo 값 표시 */}
         <Text style={styles.userName}>{userInfo.name}</Text>
         <Text style={styles.userEmail}>{userInfo.email}</Text>
         
-        <Link href="/profileedit" asChild>
+        <Link href="/useredit" asChild>
           <TouchableOpacity style={styles.editProfileButton}>
             <Text style={styles.editProfileText}>프로필 편집</Text>
           </TouchableOpacity>

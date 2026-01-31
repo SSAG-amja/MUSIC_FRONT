@@ -6,8 +6,13 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform, // ✅ 안드로이드 체크용
+  StatusBar as NativeStatusBar // ✅ 안드로이드 상단바 높이용
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+// ✅ [1] 안전 영역 훅 가져오기
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height } = Dimensions.get('window');
 
@@ -26,6 +31,15 @@ type Props = {
 export default function MusicSheet({ visible, onClose }: Props) {
   const translateY = useRef(new Animated.Value(height)).current;
 
+  // ✅ [2] 노치 높이 가져오기
+  const insets = useSafeAreaInsets();
+
+  // ✅ [3] 상단 패딩 계산 (안드로이드/iOS 대응)
+  // 안드로이드는 insets.top이 0일 수 있어서 기기 값을 직접 가져옵니다.
+  const topPadding = Platform.OS === 'android' 
+    ? NativeStatusBar.currentHeight || 0 
+    : insets.top;
+
   useEffect(() => {
     Animated.timing(translateY, {
       toValue: visible ? 0 : height,
@@ -39,6 +53,8 @@ export default function MusicSheet({ visible, onClose }: Props) {
       style={[
         styles.container,
         { transform: [{ translateY }] },
+        // ✅ [4] 계산된 높이만큼 상단에 패딩 주기
+        { paddingTop: topPadding }
       ]}
       pointerEvents={visible ? 'auto' : 'none'}
     >
@@ -76,6 +92,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: COLORS.background,
     zIndex: 200,
+    // paddingTop은 위에서 동적으로 처리함
   },
   header: {
     height: 60,
@@ -83,6 +100,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    // backgroundColor: 'red', // 영역 확인용 (필요시 주석 해제)
   },
   headerTitle: {
     color: COLORS.textPrimary,

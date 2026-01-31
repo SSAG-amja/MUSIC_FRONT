@@ -1,7 +1,7 @@
 import { Picker } from "@react-native-picker/picker";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useMemo, useState, useEffect } from "react"; // ✅ useEffect 추가
+import { useMemo, useState, useEffect } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -12,14 +12,15 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator, // ✅ 로딩 표시용
+  ActivityIndicator,
 } from "react-native";
+//260131 임재준
+// 안전 영역 높이 계산 훅 가져오기(상단바에 안겹치게)
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// ✅ 토큰 및 서버 주소 가져오기
 import * as SecureStore from 'expo-secure-store';
 import { BASE_URL } from '@/constants/Urls';
 
-// 1. TypeScript 인터페이스 정의
 interface RadioButtonProps {
   label: string;
   value: string;
@@ -30,11 +31,11 @@ interface RadioButtonProps {
 export default function UserEditScreen() {
   const router = useRouter();
 
-  // ✅ 초기값은 비워두고, 로딩이 끝나면 서버 데이터로 채웁니다.
+  // 기기의 노치 높이값 가져오기
+  const insets = useSafeAreaInsets();
+
   const [email, setEmail] = useState("");
   const [nickname, setNickname] = useState("");
-  
-  // 정보 수정을 위한 현재 비밀번호 확인용 state
   const [currentPassword, setCurrentPassword] = useState("");
 
   const [year, setYear] = useState(""); 
@@ -42,7 +43,7 @@ export default function UserEditScreen() {
   const [day, setDay] = useState(""); 
   const [gender, setGender] = useState(""); 
 
-  // ✅ 데이터 로딩 상태 관리
+    //데이터 로딩 상태 관리
   const [loading, setLoading] = useState(true);
 
   const years = useMemo(() => {
@@ -61,7 +62,7 @@ export default function UserEditScreen() {
     [],
   );
 
-  // ✅ [추가] 화면 진입 시 내 정보 불러오기
+    //화면 진입 시 내 정보 불러오기
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
@@ -83,16 +84,14 @@ export default function UserEditScreen() {
           const data = await response.json();
           console.log("📝 회원수정 화면 - 불러온 정보:", data);
 
-          // 1. 기본 정보 채우기
+          //기본 정보 채우기
           setEmail(data.email || "");
-          setNickname(data.username || data.full_name || ""); // 백엔드 필드명에 맞게 매핑
+          setNickname(data.username || data.full_name || ""); 
           setGender(data.gender || "male");
 
-          // 2. 생년월일 파싱 ("1995-05-15" -> year, month, day 분리)
           if (data.birth) {
             const [y, m, d] = data.birth.split('-');
             setYear(y);
-            // Picker 값("5")과 맞추기 위해 "05" -> 5 -> "5"로 변환
             setMonth(parseInt(m).toString()); 
             setDay(parseInt(d).toString());
           }
@@ -103,21 +102,21 @@ export default function UserEditScreen() {
         console.error("정보 로드 실패:", error);
         Alert.alert("연결 오류", "서버와 통신할 수 없습니다.");
       } finally {
-        setLoading(false); // 로딩 종료
+        setLoading(false);
       }
     };
 
     fetchUserInfo();
   }, []);
 
-  const handleUpdate = () => {
-    // 1. 필수 입력값 체크
+  const handleUpdate = async () => {
+    //필수 입력값 체크
     if (!nickname || !year || !month || !day || !gender) {
       Alert.alert("알림", "변경할 정보를 모두 입력해주세요.");
       return;
     }
 
-    // 2. 비밀번호 입력 체크 (요청사항: 비밀번호를 작성해야 변경 완료)
+    //비밀번호 입력 체크
     if (!currentPassword) {
       Alert.alert(
         "비밀번호 확인",
@@ -125,22 +124,53 @@ export default function UserEditScreen() {
       );
       return;
     }
-
-    // TODO: 여기서 실제 서버로 업데이트 요청(PUT)을 보내야 합니다.
-    
+    //서버 업데이트 요청(PUT)
     const birthDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 
-    console.log("회원정보 수정 요청:", {
-      email,
-      nickname,
-      birthDate,
-      gender,
-      currentPassword,
-    });
+    try {
+      setLoading(true);
 
-    Alert.alert("수정 완료", "회원정보가 성공적으로 변경되었습니다.", [
-      { text: "확인", onPress: () => router.back() },
-    ]);
+      const token = await SecureStore.getItemAsync('userToken');
+      if (!token) {
+        Alert.alert("오류", "로그인 세션이 만료되었습니다.");
+        router.replace('/signin');
+        return;
+      }
+
+      console.log("🚀 회원정보 수정 요청 보내는 중...");
+
+      const response = await fetch(`${BASE_URL}/api/v1/users/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          username: nickname,
+          birth: birthDate,
+          gender: gender,
+          current_password: currentPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("✅ 수정 성공:", data);
+        Alert.alert("수정 완료", "회원정보가 성공적으로 변경되었습니다.", [
+          { text: "확인", onPress: () => router.back() },
+        ]);
+      } else {
+        console.log("🔥 수정 실패:", data);
+        Alert.alert("수정 실패", data.detail || "알 수 없는 오류가 발생했습니다.");
+      }
+
+    } catch (error) {
+      console.error("❌ 통신 에러:", error);
+      Alert.alert("오류", "서버와 연결할 수 없습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const RadioButton = ({
@@ -166,7 +196,7 @@ export default function UserEditScreen() {
     </TouchableOpacity>
   );
 
-  // ✅ 로딩 중일 때 표시할 화면
+  //로딩 중일 때 표시할 화면
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -182,7 +212,7 @@ export default function UserEditScreen() {
       <StatusBar style="light" />
       <Stack.Screen
         options={{
-          title: "회원정보 수정",
+          title: "", // 헤더 타이틀 제거 (디자인에 맞춤)
           headerBackTitle: " ",
           headerTintColor: "#FFFFFF",
           headerStyle: { backgroundColor: "#0A0A1E" },
@@ -194,7 +224,13 @@ export default function UserEditScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* 260130 임재준 ScrollView에 동적 패딩 적용 */}
+        <ScrollView 
+          contentContainerStyle={[
+            styles.scrollContainer,
+            { paddingTop: insets.top } // 기기 상단바 높이만큼 여유 공간 추가
+          ]}
+        >
           <View style={styles.headerContainer}>
             <Text style={styles.headerTitle}>프로필 편집</Text>
             <Text style={styles.headerSubtitle}>
@@ -233,7 +269,6 @@ export default function UserEditScreen() {
             <View style={styles.inputWrapper}>
               <Text style={styles.label}>생년월일</Text>
               <View style={styles.datePickerRow}>
-                {/* 년 */}
                 <View style={[styles.pickerContainer, { flex: 3.8 }]}>
                   <Picker
                     selectedValue={year}
@@ -243,17 +278,11 @@ export default function UserEditScreen() {
                     mode="dropdown"
                   >
                     {years.map((y) => (
-                      <Picker.Item
-                        key={y}
-                        label={`${y}년`}
-                        value={y}
-                        color="#000000"
-                      />
+                      <Picker.Item key={y} label={`${y}년`} value={y} color="#000000" />
                     ))}
                   </Picker>
                 </View>
 
-                {/* 월 */}
                 <View style={[styles.pickerContainer, { flex: 3.1 }]}>
                   <Picker
                     selectedValue={month}
@@ -263,17 +292,11 @@ export default function UserEditScreen() {
                     mode="dropdown"
                   >
                     {months.map((m) => (
-                      <Picker.Item
-                        key={m}
-                        label={`${m}월`}
-                        value={m}
-                        color="#000000"
-                      />
+                      <Picker.Item key={m} label={`${m}월`} value={m} color="#000000" />
                     ))}
                   </Picker>
                 </View>
 
-                {/* 일 */}
                 <View style={[styles.pickerContainer, { flex: 3.1 }]}>
                   <Picker
                     selectedValue={day}
@@ -283,12 +306,7 @@ export default function UserEditScreen() {
                     mode="dropdown"
                   >
                     {days.map((d) => (
-                      <Picker.Item
-                        key={d}
-                        label={`${d}일`}
-                        value={d}
-                        color="#000000"
-                      />
+                      <Picker.Item key={d} label={`${d}일`} value={d} color="#000000" />
                     ))}
                   </Picker>
                 </View>
@@ -299,24 +317,9 @@ export default function UserEditScreen() {
             <View style={styles.inputWrapper}>
               <Text style={styles.label}>성별</Text>
               <View style={styles.radioGroup}>
-                <RadioButton
-                  label="남성"
-                  value="male"
-                  selectedValue={gender}
-                  onSelect={setGender}
-                />
-                <RadioButton
-                  label="여성"
-                  value="female"
-                  selectedValue={gender}
-                  onSelect={setGender}
-                />
-                <RadioButton
-                  label="기타"
-                  value="other"
-                  selectedValue={gender}
-                  onSelect={setGender}
-                />
+                <RadioButton label="남성" value="male" selectedValue={gender} onSelect={setGender} />
+                <RadioButton label="여성" value="female" selectedValue={gender} onSelect={setGender} />
+                <RadioButton label="기타" value="other" selectedValue={gender} onSelect={setGender} />
               </View>
             </View>
 
@@ -357,7 +360,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     padding: 30,
-    paddingTop: 10,
+    // paddingTop: 10,  <-- ✅ 기존 고정값 주석 처리 (동적 패딩 사용)
     paddingBottom: 50,
   },
   headerContainer: {

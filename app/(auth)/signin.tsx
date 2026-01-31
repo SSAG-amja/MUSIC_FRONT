@@ -1,6 +1,6 @@
 // app/(auth)/signin.tsx
-//260130 임재준
-//라우팅 편의성을 위하여 기존 로그인화면이었던 index.tsx
+// 260130 임재준
+// 라우팅 편의성을 위하여 기존 로그인화면이었던 index.tsx
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
@@ -24,7 +24,7 @@ export default function SignInScreen() {
     console.log("🚀 로그인 요청 시작:", id);
 
     try {
-      const TARGET_URL = `${BASE_URL}/api/v1/login`;
+      const TARGET_URL = `${BASE_URL}/api/v1/login/`;
       
       const formData = new URLSearchParams();
       formData.append('username', id); 
@@ -41,9 +41,18 @@ export default function SignInScreen() {
       if (response.ok) {
         console.log('🎉 로그인 성공!');
         await SecureStore.setItemAsync('userToken', data.access_token);
-        
-        // 로그인 성공 시 메인 탭으로 이동
-        router.replace('/(tabs)'); 
+        //260131 임재준
+        // 신규 유저(is_newer) 여부에 따른 라우팅 분기 처리
+        console.log("신규 유저 여부:", data.is_newer);
+
+        if (data.is_newer) {
+            // 신규 유저라면 온보딩 화면으로 이동
+            router.replace('/onboarding');
+        } else {
+            // 기존 유저라면 메인 탭으로 이동
+            router.replace('/(tabs)'); 
+        }
+
       } else {
         Alert.alert('로그인 실패', '아이디 또는 비밀번호를 확인해주세요.');
       }
