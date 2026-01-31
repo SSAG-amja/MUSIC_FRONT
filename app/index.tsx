@@ -1,11 +1,14 @@
 // app/index.tsx
-//260130 임재준
-//기존 로그인 로직은 (auth)/signin.tsx로 이동
-//index.tsx파일은 로딩 및 문지기 역할만 수행
+// 260130 임재준
+// 기존 로그인 로직은 (auth)/signin.tsx로 이동
+// index.tsx파일은 로딩 및 문지기 역할만 수행
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { useRouter, useRootNavigationState } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+
+// ✅ [추가] API 호출을 위해 BASE_URL 임포트
+import { BASE_URL } from '@/constants/Urls';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -29,8 +32,28 @@ export default function SplashScreen() {
         const token = await SecureStore.getItemAsync('userToken');
         
         if (token) {
-          console.log("🎟️ 자동 로그인 -> 메인으로");
-          router.replace('/(tabs)'); 
+          // ✅ [수정] 토큰이 있다고 바로 메인으로 가지 않고, 유저 상태(is_newer)를 확인
+          console.log("🎟️ 토큰 발견! 유저 상태 확인 중...");
+          
+          const response = await fetch(`${BASE_URL}/api/v1/users/me`, {
+             headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            
+            if (userData.is_newer) {
+              console.log("👶 신규 유저 발견 -> 온보딩으로 이동");
+              router.replace('/onboarding'); 
+            } else {
+              console.log("😎 기존 유저 -> 메인으로 이동");
+              router.replace('/(tabs)'); 
+            }
+          } else {
+            // 토큰은 있는데 유효하지 않은 경우 (만료 등)
+            console.log("🔒 유효하지 않은 토큰 -> 로그인 화면으로");
+            router.replace('/signin');
+          }
         } else {
           console.log("🔒 토큰 없음 -> 로그인 화면으로");
           // (auth) 그룹 폴더는 주소에 포함되지 않으므로 그냥 /signin 입니다.

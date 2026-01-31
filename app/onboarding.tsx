@@ -2,14 +2,19 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ActivityIndicator //로딩 컴포넌트 추가
 } from 'react-native';
+
+//백엔드 통신을 위한 라이브러리 추가
+import * as SecureStore from 'expo-secure-store';
+import { BASE_URL } from '@/constants/Urls';
 
 // 더미 데이터 (나중에 API로 받아올 수 있음)
 const GENRES = [
@@ -28,6 +33,7 @@ const GENRES = [
 export default function OnboardingScreen() {
   const router = useRouter();
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false); //로딩 상태 관리
 
   // 장르 선택/해제 토글 로직
   const toggleGenre = (id: string) => {
@@ -38,18 +44,75 @@ export default function OnboardingScreen() {
     }
   };
 
-  // 완료 버튼 핸들러
+  // ✅ 완료 버튼 핸들러 (백엔드 연동)
   const handleComplete = async () => {
     if (selectedGenres.length < 3) {
       Alert.alert('알림', '정확한 추천을 위해 3개 이상 선택해주세요.');
       return;
     }
+    //260131 임재준
+    //토큰값이 True이면 온보딩 화면,아니면 tabs로 라우팅
+    //온보딩 화면 선택 후 is_newer false 수정 요청
+    try {
+      setLoading(true); // 로딩 시작
+      
+      // 1. 토큰 가져오기
+      const token = await SecureStore.getItemAsync('userToken');
+      if (!token) {
+        Alert.alert("오류", "로그인 정보가 없습니다.");
+        router.replace('/signin');
+        return;
+      }
 
-    // TODO: 서버에 선택한 취향 데이터 전송 (POST /user/preferences)
-    console.log('선택된 장르 ID:', selectedGenres);
+      console.log('🚀 장르 저장 시작:', selectedGenres);
 
-    // 메인 화면으로 이동 (뒤로가기 방지)
-    router.replace('/(tabs)');
+      // 2. 선택된 장르 ID를 실제 객체 정보로 변환
+      const selectedGenreObjects = GENRES.filter(g => selectedGenres.includes(g.id));
+
+      // 3. [핵심] 여러 개의 장르를 동시에 저장 (Promise.all)
+      // 백엔드 API가 한 번에 1개씩만 받으므로, map으로 여러 요청을 만듭니다.
+      const savePromises = selectedGenreObjects.map(genre => {
+        // ⚠️ 주의: main.py 라우터 설정에 따라 주소가 다를 수 있음 (/api/v1/user-data/genres 등)
+        return fetch(`${BASE_URL}/api/v1/user-data/genres`, { 
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          // 백엔드 GenreCreate 스키마 (genre_code, genre_name)
+          body: JSON.stringify({
+            genre_code: genre.id,
+            genre_name: genre.name
+          })
+        });
+      });
+
+      await Promise.all(savePromises);
+      console.log("✅ 모든 장르 저장 완료!");
+
+      // 4. [핵심] 온보딩 완료 처리 (신규 유저 딱지 떼기)
+      console.log("🚀 신규 유저 상태 해제 요청...");
+      const completeResponse = await fetch(`${BASE_URL}/api/v1/users/onboarding/complete`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (completeResponse.ok) {
+        console.log("🎉 온보딩 졸업! 메인으로 이동");
+        router.replace('/(tabs)');
+      } else {
+        console.log("⚠️ 온보딩 완료 처리 실패");
+        Alert.alert("오류", "완료 처리에 실패했습니다.");
+      }
+
+    } catch (error) {
+      console.error("오류 발생:", error);
+      Alert.alert("오류", "서버와 통신 중 문제가 발생했습니다.");
+    } finally {
+      setLoading(false); // 로딩 끝
+    }
   };
 
   const renderItem = ({ item }: { item: typeof GENRES[0] }) => {
@@ -109,11 +172,15 @@ export default function OnboardingScreen() {
                 selectedGenres.length < 3 && styles.completeButtonDisabled // 비활성화 스타일
               ]} 
               onPress={handleComplete}
-              disabled={selectedGenres.length < 3} // 3개 미만이면 클릭 불가 (선택사항)
+              disabled={selectedGenres.length < 3 || loading} // 로딩 중이거나 3개 미만이면 클릭 불가
             >
-              <Text style={styles.completeButtonText}>
-                {selectedGenres.length}개 선택됨 • 시작하기
-              </Text>
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.completeButtonText}>
+                  {selectedGenres.length}개 선택됨 • 시작하기
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
 

@@ -79,7 +79,7 @@ export default function SignupScreen() {
     console.log("🚀 [1단계] 요청 시작!");
 
     try {
-      const TARGET_URL = `${BASE_URL}/api/v1/users`;
+      const TARGET_URL = `${BASE_URL}/api/v1/users/`;
       console.log(`📡 [2단계] 페치 시도: ${TARGET_URL}`);
 
       const response = await fetch(TARGET_URL, {
