@@ -2,6 +2,11 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## 프론트 실행시
+1. app/.env.exmaple은 건들지 말고 내용 복사해서 app/에 .env 파일 생성
+2. 터미널에 ipconfig 입력해서 IPv4 주소 확인 후 수정 + 저장
+3. expo 실행시 npx expo start --clear로 하면 기존 캐시 삭제됨
+
 ## Get started
 
 1. Install dependencies
