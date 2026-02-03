@@ -1,7 +1,7 @@
 import WeatherBackground from '@/components/WeatherBackground';
 import { useWeatherQuery } from '@/hooks/get-loc-wtr-info'; // 👈 1. 불러
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -20,8 +20,15 @@ const SUB_TEXT_COLOR = '#9A9AB0';
 
 export default function HomeScreen() {
   const { data, isLoading, error } = useWeatherQuery();
-  const [location] = useState('Seoul, South Korea');
+  const [location, setLocation] = useState('위치 확인 중...'); //초기 값
   const [weather] = useState('Rainy');
+  //260203 김호영
+  // 위치 정보가 업데이트 될 때마다 location 상태를 화면에 갱신
+  useEffect(() => {
+    if (data?.location) {
+      setLocation(`${data.location.district} ${data.location.dong}`);
+    }
+  }, [data]);
 
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
