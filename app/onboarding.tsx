@@ -2,19 +2,20 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
+  ActivityIndicator //로딩 컴포넌트 추가
+  ,
   Alert,
   FlatList,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  ActivityIndicator //로딩 컴포넌트 추가
+  View
 } from 'react-native';
 
 //백엔드 통신을 위한 라이브러리 추가
-import * as SecureStore from 'expo-secure-store';
 import { BASE_URL } from '@/constants/Urls';
+import * as SecureStore from 'expo-secure-store';
 
 // 더미 데이터 (나중에 API로 받아올 수 있음)
 const GENRES = [
@@ -72,8 +73,8 @@ export default function OnboardingScreen() {
       // 3. [핵심] 여러 개의 장르를 동시에 저장 (Promise.all)
       // 백엔드 API가 한 번에 1개씩만 받으므로, map으로 여러 요청을 만듭니다.
       const savePromises = selectedGenreObjects.map(genre => {
-        // ⚠️ 주의: main.py 라우터 설정에 따라 주소가 다를 수 있음 (/api/v1/user-data/genres 등)
-        return fetch(`${BASE_URL}/api/v1/user-data/genres`, { 
+        // ⚠️ 주의: main.py 라우터 설정에 따라 주소가 다를 수 있음 (/api/v1/user_data/genres 등)
+        return fetch(`${BASE_URL}/api/v1/user_data/genres`, { 
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
