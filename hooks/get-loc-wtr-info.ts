@@ -36,7 +36,7 @@ const fetchWeatherAndLocation = async () => {
 
   // 3. 백엔드 서버로 요청
   const response = await fetch(
-    `${BASE_URL}/api/getLocWtr?lat=${latitude}&lon=${longitude}`, 
+    `${BASE_URL}/api/v1/loc_wtr/getLocWtr?lat=${latitude}&lon=${longitude}`, 
     {
       method: 'GET',
       headers: {

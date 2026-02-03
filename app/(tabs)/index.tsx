@@ -1,14 +1,15 @@
+import WeatherBackground from '@/components/WeatherBackground';
+import { useWeatherQuery } from '@/hooks/get-loc-wtr-info'; // 👈 1. 불러
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import WeatherBackground from '@/components/WeatherBackground';
 
 /* ───── 컬러 상수 ───── */
 const BG_COLOR = '#0A0A1A';
@@ -18,6 +19,7 @@ const ACCENT_COLOR = '#7F56D9';
 const SUB_TEXT_COLOR = '#9A9AB0';
 
 export default function HomeScreen() {
+  const { data, isLoading, error } = useWeatherQuery();
   const [location] = useState('Seoul, South Korea');
   const [weather] = useState('Rainy');
 
