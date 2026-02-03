@@ -1,15 +1,12 @@
-import { Picker } from '@react-native-picker/picker';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
-//260130 임재준
+// 260130 임재준
 //안전한 영역(노치 등) 높이를 계산해주는 훅 가져오기
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-// 1. 서버 주소 가져오기
+//서버 주소 가져오기
 import { BASE_URL } from '@/constants/Urls';
-console.log("🧐 현재 적용된 BASE_URL:", BASE_URL);
 
 interface RadioButtonProps {
   label: string;
@@ -20,31 +17,20 @@ interface RadioButtonProps {
 
 export default function SignupScreen() {
   const router = useRouter();
-  
-  // ✅ [추가 2] 현재 기기의 안전 영역 크기 가져오기
   const insets = useSafeAreaInsets();
   
   const [email, setEmail] = useState('');
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
+  //260203 임재준
+  // Picker용 배열 생성 로직(useMemo) 삭제
   const [year, setYear] = useState('');
   const [month, setMonth] = useState('');
   const [day, setDay] = useState('');
   const [gender, setGender] = useState('');
 
   const [loading, setLoading] = useState(false);
-
-  const years = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const list = [];
-    for (let i = currentYear; i >= 1950; i--) list.push(i.toString());
-    return list;
-  }, []);
-
-  const months = useMemo(() => Array.from({ length: 12 }, (_, i) => (i + 1).toString()), []);
-  const days = useMemo(() => Array.from({ length: 31 }, (_, i) => (i + 1).toString()), []);
 
   const handleSignup = async () => {
     // 1. 유효성 검사
@@ -63,8 +49,17 @@ export default function SignupScreen() {
       Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
       return;
     }
+    //260203 임재준
+    // 간단한 날짜 유효성 체크
+    const y = parseInt(year, 10);
+    const m = parseInt(month, 10);
+    const d = parseInt(day, 10);
+    if (y < 1900 || y > new Date().getFullYear() || m < 1 || m > 12 || d < 1 || d > 31) {
+        Alert.alert('오류', '올바른 생년월일을 입력해주세요.');
+        return;
+    }
 
-    // 2. 데이터 가공
+    // 데이터 가공 (padStart로 1 -> 01 변환 유지)
     const birthString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     
     const signupData = {
@@ -142,7 +137,6 @@ export default function SignupScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        {/* ✅ [수정 3] contentContainerStyle에 insets.top을 더해서 상태바 만큼 패딩을 줍니다 */}
         <ScrollView 
           contentContainerStyle={[
             styles.scrollContainer, 
@@ -182,52 +176,45 @@ export default function SignupScreen() {
                 autoCorrect={false}
               />
             </View>
-            
-            {/* 생년월일 */}
+            {/*260203 임재준 */}
+            {/* 생년월일 (Picker -> TextInput 변경됨) */}
             <View style={styles.inputWrapper}>
               <Text style={styles.label}>생년월일</Text>
               <View style={styles.datePickerRow}>
                 {/* 년 */}
-                <View style={[styles.pickerContainer, { flex: 3.8 }]}>
-                  <Picker
-                    selectedValue={year}
-                    onValueChange={(itemValue) => setYear(itemValue)}
-                    style={styles.picker}
-                    dropdownIconColor="#FFFFFF"
-                    mode="dropdown"
-                  >
-                    <Picker.Item label="연도" value="" color="#888899" enabled={false} />
-                    {years.map((y) => <Picker.Item key={y} label={`${y}년`} value={y} color="#000000" />)}
-                  </Picker>
-                </View>
-
+                <TextInput
+                  style={[styles.input, { flex: 1.2, textAlign: 'center' }]}
+                  placeholder="YYYY"
+                  placeholderTextColor="#888899"
+                  value={year}
+                  onChangeText={setYear}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  returnKeyType="next"
+                />
+                
                 {/* 월 */}
-                <View style={[styles.pickerContainer, { flex: 3.1 }]}>
-                  <Picker
-                    selectedValue={month}
-                    onValueChange={(itemValue) => setMonth(itemValue)}
-                    style={styles.picker}
-                    dropdownIconColor="#FFFFFF"
-                    mode="dropdown"
-                  >
-                    <Picker.Item label="월" value="" color="#888899" enabled={false} />
-                    {months.map((m) => <Picker.Item key={m} label={`${m}월`} value={m} color="#000000" />)}
-                  </Picker>
-                </View>
+                <TextInput
+                  style={[styles.input, { flex: 1, textAlign: 'center' }]}
+                  placeholder="MM"
+                  placeholderTextColor="#888899"
+                  value={month}
+                  onChangeText={setMonth}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  returnKeyType="next"
+                />
 
                 {/* 일 */}
-                <View style={[styles.pickerContainer, { flex: 3.1 }]}>
-                  <Picker
-                    selectedValue={day}
-                    onValueChange={(itemValue) => setDay(itemValue)}
-                    style={styles.picker}
-                    dropdownIconColor="#FFFFFF"
-                    mode="dropdown"
-                  >
-                    <Picker.Item label="일" value="" color="#888899" enabled={false} />
-                    {days.map((d) => <Picker.Item key={d} label={`${d}일`} value={d} color="#000000" />)}
-                  </Picker>
-                </View>
+                <TextInput
+                  style={[styles.input, { flex: 1, textAlign: 'center' }]}
+                  placeholder="DD"
+                  placeholderTextColor="#888899"
+                  value={day}
+                  onChangeText={setDay}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                />
               </View>
             </View>
 
@@ -294,7 +281,6 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     padding: 30,
-    // paddingTop: 10,  <-- ✅ 이 값은 이제 ScrollView의 style prop에서 동적으로 처리합니다.
     paddingBottom: 50,
   },
   headerContainer: {
@@ -334,29 +320,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2F2F4F',
   },
-  // --- 생년월일 스타일 ---
+  // --- 생년월일 스타일 (Picker 관련 스타일 제거됨) ---
   datePickerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 10,
   },
-  pickerContainer: {
-    flex: 1, 
-    height: 55,
-    backgroundColor: '#1F1F35', 
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2F2F4F',
-    justifyContent: 'center', 
-    overflow: 'hidden', 
-  },
-  picker: {
-    width: '100%', 
-    height: '100%',
-    backgroundColor: '#1F1F35', 
-    color: '#FFFFFF',
-    ...(Platform.OS === 'android' ? { } : { height: 150, marginTop: -50 }),
-  },
+  // pickerContainer 및 picker 스타일 삭제됨
+  
   // --- 성별 라디오 버튼 스타일 ---
   radioGroup: {
     flexDirection: 'row',
