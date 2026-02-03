@@ -1,7 +1,6 @@
-import { Picker } from "@react-native-picker/picker";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -45,22 +44,8 @@ export default function UserEditScreen() {
 
     //데이터 로딩 상태 관리
   const [loading, setLoading] = useState(true);
-
-  const years = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const list = [];
-    for (let i = currentYear; i >= 1950; i--) list.push(i.toString());
-    return list;
-  }, []);
-
-  const months = useMemo(
-    () => Array.from({ length: 12 }, (_, i) => (i + 1).toString()),
-    [],
-  );
-  const days = useMemo(
-    () => Array.from({ length: 31 }, (_, i) => (i + 1).toString()),
-    [],
-  );
+  //260203 임재준
+  // Picker용 배열 생성 로직(useMemo) 삭제함
 
     //화면 진입 시 내 정보 불러오기
   useEffect(() => {
@@ -124,6 +109,16 @@ export default function UserEditScreen() {
       );
       return;
     }
+    //260203 임재준
+    // 날짜 유효성 간단 체크 (Signup.tsx와 동일 로직)
+    const y = parseInt(year, 10);
+    const m = parseInt(month, 10);
+    const d = parseInt(day, 10);
+    if (y < 1900 || y > new Date().getFullYear() || m < 1 || m > 12 || d < 1 || d > 31) {
+        Alert.alert('오류', '올바른 생년월일을 입력해주세요.');
+        return;
+    }
+
     //서버 업데이트 요청(PUT)
     const birthDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 
@@ -265,51 +260,44 @@ export default function UserEditScreen() {
               />
             </View>
 
-            {/* 생년월일 */}
+            {/* 생년월일 (Picker -> TextInput 변경) */}
             <View style={styles.inputWrapper}>
               <Text style={styles.label}>생년월일</Text>
               <View style={styles.datePickerRow}>
-                <View style={[styles.pickerContainer, { flex: 3.8 }]}>
-                  <Picker
-                    selectedValue={year}
-                    onValueChange={(itemValue) => setYear(itemValue)}
-                    style={styles.picker}
-                    dropdownIconColor="#FFFFFF"
-                    mode="dropdown"
-                  >
-                    {years.map((y) => (
-                      <Picker.Item key={y} label={`${y}년`} value={y} color="#000000" />
-                    ))}
-                  </Picker>
-                </View>
+                {/* 년 */}
+                <TextInput
+                  style={[styles.input, { flex: 1.2, textAlign: 'center' }]}
+                  placeholder="YYYY"
+                  placeholderTextColor="#888899"
+                  value={year}
+                  onChangeText={setYear}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  returnKeyType="next"
+                />
 
-                <View style={[styles.pickerContainer, { flex: 3.1 }]}>
-                  <Picker
-                    selectedValue={month}
-                    onValueChange={(itemValue) => setMonth(itemValue)}
-                    style={styles.picker}
-                    dropdownIconColor="#FFFFFF"
-                    mode="dropdown"
-                  >
-                    {months.map((m) => (
-                      <Picker.Item key={m} label={`${m}월`} value={m} color="#000000" />
-                    ))}
-                  </Picker>
-                </View>
+                {/* 월 */}
+                <TextInput
+                  style={[styles.input, { flex: 1, textAlign: 'center' }]}
+                  placeholder="MM"
+                  placeholderTextColor="#888899"
+                  value={month}
+                  onChangeText={setMonth}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  returnKeyType="next"
+                />
 
-                <View style={[styles.pickerContainer, { flex: 3.1 }]}>
-                  <Picker
-                    selectedValue={day}
-                    onValueChange={(itemValue) => setDay(itemValue)}
-                    style={styles.picker}
-                    dropdownIconColor="#FFFFFF"
-                    mode="dropdown"
-                  >
-                    {days.map((d) => (
-                      <Picker.Item key={d} label={`${d}일`} value={d} color="#000000" />
-                    ))}
-                  </Picker>
-                </View>
+                {/* 일 */}
+                <TextInput
+                  style={[styles.input, { flex: 1, textAlign: 'center' }]}
+                  placeholder="DD"
+                  placeholderTextColor="#888899"
+                  value={day}
+                  onChangeText={setDay}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                />
               </View>
             </View>
 
@@ -414,29 +402,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#2F2F4F",
     marginVertical: 10,
   },
-  // --- 생년월일 스타일 ---
+  // --- 생년월일 스타일 (Picker 제거 후 스타일 단순화) ---
   datePickerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 10,
   },
-  pickerContainer: {
-    flex: 1,
-    height: 55,
-    backgroundColor: "#1F1F35",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#2F2F4F",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  picker: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: "#1F1F35",
-    color: "#FFFFFF",
-    ...(Platform.OS === "android" ? {} : { height: 150, marginTop: -50 }),
-  },
+  // pickerContainer 및 picker 스타일 삭제함
+  
   // --- 성별 라디오 버튼 스타일 ---
   radioGroup: {
     flexDirection: "row",
@@ -478,7 +451,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#8A2BE2",
     borderRadius: 12,
     justifyContent: "center",
-    alignItems: "center",
+    alignItems: 'center',
     shadowColor: "#8A2BE2",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
